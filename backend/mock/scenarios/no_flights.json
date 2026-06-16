@@ -1,0 +1,9 @@
+{
+  "name": "no_flights",
+  "description": "Forces all flight searches to return zero results, triggering the orchestrator's budget reallocation and retry logic.",
+  "overrides": {
+    "flights": {
+      "empty_results": true
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "hotel_sold_out",
+  "description": "Forces the top-ranked hotel to appear unavailable, triggering the agent to return the next-best alternative.",
+  "overrides": {
+    "hotels": {
+      "force_unavailable_top_n": 1
+    }
+  }
+}
