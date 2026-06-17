@@ -119,7 +119,12 @@ BACKEND_DIR = Path(__file__).parent.parent
 PYTHON = str(Path(sys.executable))
 
 
-def _server_params(module: str) -> StdioServerParameters:
+def _live_server_params(module: str) -> StdioServerParameters:
+    """
+    Build StdioServerParameters with a FRESH copy of os.environ.
+    Must be called at tool-call time (not at import time) so that
+    MOCK_SCENARIO set by activate_scenario is included in the subprocess env.
+    """
     return StdioServerParameters(
         command=PYTHON,
         args=["-m", module],
@@ -127,9 +132,10 @@ def _server_params(module: str) -> StdioServerParameters:
     )
 
 
-FLIGHT_SERVER = _server_params("agents.flights.server")
-HOTEL_SERVER = _server_params("agents.hotels.server")
-ITINERARY_SERVER = _server_params("agents.itinerary.server")
+# Module names for each MCP agent subprocess
+_FLIGHT_MODULE = "agents.flights.server"
+_HOTEL_MODULE = "agents.hotels.server"
+_ITINERARY_MODULE = "agents.itinerary.server"
 
 
 # ---------------------------------------------------------------------------
@@ -461,7 +467,8 @@ class VoyagerOrchestrator:
 
     async def _call_flight_tool(self, tool: str, **kwargs) -> Any:
         try:
-            async with stdio_client(FLIGHT_SERVER) as (read, write):
+            server = _live_server_params(_FLIGHT_MODULE)
+            async with stdio_client(server) as (read, write):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     result = await session.call_tool(tool, arguments=kwargs)
@@ -476,7 +483,8 @@ class VoyagerOrchestrator:
 
     async def _call_hotel_tool(self, tool: str, **kwargs) -> Any:
         try:
-            async with stdio_client(HOTEL_SERVER) as (read, write):
+            server = _live_server_params(_HOTEL_MODULE)
+            async with stdio_client(server) as (read, write):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     result = await session.call_tool(tool, arguments=kwargs)
@@ -491,7 +499,8 @@ class VoyagerOrchestrator:
 
     async def _call_itinerary_tool(self, tool: str, **kwargs) -> Any:
         try:
-            async with stdio_client(ITINERARY_SERVER) as (read, write):
+            server = _live_server_params(_ITINERARY_MODULE)
+            async with stdio_client(server) as (read, write):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     result = await session.call_tool(tool, arguments=kwargs)
