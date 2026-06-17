@@ -1,7 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { TripForm } from "@/components/trip-form/TripForm";
-import { ScenarioSelector } from "@/components/scenario/ScenarioSelector";
 import { createPlan } from "@/lib/api";
 import type { TripRequestForm } from "@/lib/validations";
 import { Globe, Zap, Shield } from "lucide-react";
@@ -33,7 +32,6 @@ export default function Home() {
             <Globe className="w-6 h-6 text-primary" />
             <span className="text-lg font-bold tracking-tight">Voyager</span>
           </div>
-          <ScenarioSelector />
         </div>
 
         {/* Hero */}

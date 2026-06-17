@@ -1,0 +1,28 @@
+# Default values for voyager.
+# This is a YAML-formatted file.
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: "voyager-frontend"
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 3000
+
+backend:
+  replicaCount: 1
+  image:
+    repository: "voyager-backend"
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 8000
+
+secrets:
+  # The actual keys should be injected by the CI/CD pipeline or SOPS,
+  # but placeholders are kept here to define the structure.
+  anthropicApiKey: ""
+  serpapiKey: ""

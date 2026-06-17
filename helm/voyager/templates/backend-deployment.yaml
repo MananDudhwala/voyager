@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-backend
+  labels:
+    app: voyager-backend
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      app: voyager-backend
+  template:
+    metadata:
+      labels:
+        app: voyager-backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          env:
+            - name: USE_REAL_API
+              value: "true"
+            - name: MOCK_API_URL
+              value: "http://127.0.0.1:8001" # Mock API not split in this basic chart, assuming mock is disabled or running locally
+          envFrom:
+            - secretRef:
+                name: {{ .Release.Name }}-secrets

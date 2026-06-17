@@ -1,0 +1,6 @@
+apiVersion: v2
+name: voyager
+description: A Helm chart for deploying the Voyager AI Travel Agent (Frontend + Backend)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
