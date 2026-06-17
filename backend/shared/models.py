@@ -70,7 +70,7 @@ class TripRequest(BaseModel):
     depart_date: date = Field(..., description="Outbound flight date")
     return_date: date = Field(..., description="Return flight date")
     travelers: int = Field(default=1, ge=1, le=9)
-    budget_usd: float = Field(..., gt=0, description="Total budget in USD for the entire trip")
+    budget_inr: float = Field(..., gt=0, description="Total budget in INR (₹) for the entire trip")
     preferences: Optional[dict] = Field(default=None, description="Optional traveler preferences")
 
 
@@ -161,7 +161,7 @@ class POI(BaseModel):
     latitude: float
     longitude: float
     estimated_duration_minutes: int = 60
-    entry_fee_usd: float = 0.0
+    entry_fee_inr: float = 0.0
     is_indoor: bool = False
     rating: Optional[float] = Field(default=None, ge=1.0, le=5.0)
 

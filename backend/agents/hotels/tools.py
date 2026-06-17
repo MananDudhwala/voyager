@@ -38,7 +38,7 @@ def search_hotels(
         check_in: Check-in date in YYYY-MM-DD format
         check_out: Check-out date in YYYY-MM-DD format
         guests: Number of guests (default 1)
-        max_price_per_night: Maximum price per night in USD (optional)
+        max_price_per_night: Maximum price per night in INR (optional)
         tier: Filter by tier — 'budget' | 'midscale' | 'upscale' | 'luxury' (optional)
 
     Returns:

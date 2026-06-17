@@ -53,7 +53,7 @@ async def list_tools() -> list[Tool]:
                     },
                     "max_price_per_night": {
                         "type": "number",
-                        "description": "Maximum price per night in USD (optional)",
+                        "description": "Maximum price per night in INR (optional)",
                     },
                     "tier": {
                         "type": "string",

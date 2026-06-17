@@ -181,14 +181,14 @@ def build_itinerary(
             )
             legs.append(leg)
 
-        total_cost = sum(p.get("entry_fee_usd", 0) for p in day_pois)
+        total_cost = sum(p.get("entry_fee_inr", p.get("entry_fee_usd", 0)) for p in day_pois)
 
         day_plans.append({
             "date": day_date,
             "weather": w,
             "pois": day_pois,
             "travel_legs": legs,
-            "daily_activities_cost_usd": round(total_cost, 2),
+            "daily_activities_cost_inr": round(total_cost, 2),
             "weather_note": (
                 "🌧️ Rainy day — itinerary adjusted to indoor activities"
                 if is_rainy
@@ -196,11 +196,11 @@ def build_itinerary(
             ),
         })
 
-    total_cost = sum(d["daily_activities_cost_usd"] for d in day_plans)
+    total_cost = sum(d["daily_activities_cost_inr"] for d in day_plans)
 
     return {
         "city": city,
         "days": day_plans,
-        "total_activities_cost_usd": round(total_cost, 2),
+        "total_activities_cost_usd": round(total_cost, 2),  # key kept for orchestrator compat
         "travel_mode": travel_mode,
     }

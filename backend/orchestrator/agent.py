@@ -36,6 +36,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import traceback
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -131,10 +132,35 @@ HOTEL_SERVER = _server_params("agents.hotels.server")
 ITINERARY_SERVER = _server_params("agents.itinerary.server")
 
 
+# ---------------------------------------------------------------------------
+# Exception helpers
+# ---------------------------------------------------------------------------
+
+def _unwrap_exception(exc: BaseException) -> str:
+    """
+    Recursively unwrap ExceptionGroup / BaseExceptionGroup (raised by anyio /
+    MCP TaskGroups) to extract the innermost real exception messages.
+
+    Without this, str(exc) returns the useless generic string:
+        "unhandled errors in a TaskGroup (1 sub-exception)"
+    With this, we get the actual root cause, e.g.:
+        "Connection refused" or "Tool 'search_flights' not found"
+    """
+    # Python 3.11+ ExceptionGroup / BaseExceptionGroup
+    if isinstance(exc, BaseExceptionGroup):
+        parts = [_unwrap_exception(sub) for sub in exc.exceptions]
+        return " | ".join(p for p in parts if p)
+    # Plain exception — prefer the message, fall back to repr
+    msg = str(exc).strip()
+    return msg if msg else repr(exc)
+
+
+
 class VoyagerOrchestrator:
     """
     High-level orchestrator that coordinates the three MCP sub-agents.
     """
+
 
     def __init__(self) -> None:
         if not ANTHROPIC_API_KEY:
@@ -405,28 +431,43 @@ class VoyagerOrchestrator:
     # ------------------------------------------------------------------
 
     async def _call_flight_tool(self, tool: str, **kwargs) -> Any:
-        async with stdio_client(FLIGHT_SERVER) as (read, write):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                result = await session.call_tool(tool, arguments=kwargs)
-                text = result.content[0].text if result.content else "[]"
-                return json.loads(text)
+        try:
+            async with stdio_client(FLIGHT_SERVER) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    result = await session.call_tool(tool, arguments=kwargs)
+                    text = result.content[0].text if result.content else "[]"
+                    return json.loads(text)
+        except BaseException as exc:
+            raise RuntimeError(
+                f"flight_agent.{tool} failed: {_unwrap_exception(exc)}"
+            ) from exc
 
     async def _call_hotel_tool(self, tool: str, **kwargs) -> Any:
-        async with stdio_client(HOTEL_SERVER) as (read, write):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                result = await session.call_tool(tool, arguments=kwargs)
-                text = result.content[0].text if result.content else "[]"
-                return json.loads(text)
+        try:
+            async with stdio_client(HOTEL_SERVER) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    result = await session.call_tool(tool, arguments=kwargs)
+                    text = result.content[0].text if result.content else "[]"
+                    return json.loads(text)
+        except BaseException as exc:
+            raise RuntimeError(
+                f"hotel_agent.{tool} failed: {_unwrap_exception(exc)}"
+            ) from exc
 
     async def _call_itinerary_tool(self, tool: str, **kwargs) -> Any:
-        async with stdio_client(ITINERARY_SERVER) as (read, write):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                result = await session.call_tool(tool, arguments=kwargs)
-                text = result.content[0].text if result.content else "{}"
-                return json.loads(text)
+        try:
+            async with stdio_client(ITINERARY_SERVER) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    result = await session.call_tool(tool, arguments=kwargs)
+                    text = result.content[0].text if result.content else "{}"
+                    return json.loads(text)
+        except BaseException as exc:
+            raise RuntimeError(
+                f"itinerary_agent.{tool} failed: {_unwrap_exception(exc)}"
+            ) from exc
 
     # ------------------------------------------------------------------
     # Data conversion helpers

@@ -52,7 +52,7 @@ async def list_tools() -> list[Tool]:
                     },
                     "max_price": {
                         "type": "number",
-                        "description": "Maximum total price in USD for all passengers (optional)",
+                        "description": "Maximum total price in INR for all passengers (optional)",
                     },
                 },
                 "required": ["origin", "destination", "date"],

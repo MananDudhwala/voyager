@@ -81,9 +81,13 @@ def remaining_budget(total: float, flight_cost: float, hotel_cost: float) -> flo
     return round(total - flight_cost - hotel_cost, 2)
 
 
-def format_usd(amount: float) -> str:
-    """Human-readable USD string."""
-    return f"${amount:,.2f}"
+def format_inr(amount: float) -> str:
+    """Human-readable INR string."""
+    return f"₹{amount:,.0f}"
+
+
+# Keep alias for any legacy callers
+format_usd = format_inr
 
 
 @dataclass
@@ -107,9 +111,9 @@ class BudgetSummary:
 
     def describe(self) -> str:
         return (
-            f"Budget: {format_usd(self.allocation.total)} | "
-            f"Flights: {format_usd(self.flight_cost)} | "
-            f"Hotel: {format_usd(self.hotel_cost)} | "
-            f"Activities: {format_usd(self.activities_cost)} | "
-            f"Remaining: {format_usd(self.remaining)}"
+            f"Budget: {format_inr(self.allocation.total)} | "
+            f"Flights: {format_inr(self.flight_cost)} | "
+            f"Hotel: {format_inr(self.hotel_cost)} | "
+            f"Activities: {format_inr(self.activities_cost)} | "
+            f"Remaining: {format_inr(self.remaining)}"
         )

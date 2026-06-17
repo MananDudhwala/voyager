@@ -106,7 +106,7 @@ async def create_plan(body: PlanRequestBody):
 
     async def run_planning():
         try:
-            from orchestrator.agent import VoyagerOrchestrator
+            from orchestrator.agent import VoyagerOrchestrator, _unwrap_exception
             orchestrator = VoyagerOrchestrator()
 
             async def push_event(event: OrchestratorEvent):
@@ -114,11 +114,20 @@ async def create_plan(body: PlanRequestBody):
 
             plan = await orchestrator.plan(request, event_callback=push_event)
             _plans[plan_id] = plan
-        except Exception as e:
+        except BaseException as e:
+            import traceback, sys
+            # Print full traceback to server stderr for debugging
+            traceback.print_exc(file=sys.stderr)
+            # Unwrap ExceptionGroup so the frontend gets the real error message
+            try:
+                from orchestrator.agent import _unwrap_exception
+                msg = _unwrap_exception(e)
+            except Exception:
+                msg = str(e) or repr(e)
             err_event = OrchestratorEvent(
                 event_type="error",
                 agent="orchestrator",
-                message=str(e),
+                message=msg,
             )
             await _event_queues[plan_id].put(err_event)
         finally:
