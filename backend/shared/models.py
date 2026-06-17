@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from datetime import date
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 from pydantic import BaseModel, Field
 
 
@@ -200,10 +200,11 @@ class TripPlan(BaseModel):
     plan_id: str
     request: TripRequest
     budget: BudgetAllocation
+    currency: str = "INR"
     flight_outbound: Optional[FlightOption] = None
     flight_return: Optional[FlightOption] = None
     hotel: Optional[HotelOption] = None
-    itinerary: Optional[Itinerary] = None
+    itinerary: Optional[Any] = None
     status: PlanStatus = PlanStatus.PENDING
     total_cost: float = 0.0
     savings: float = 0.0  # budget - total_cost

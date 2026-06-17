@@ -1,0 +1,12 @@
+{
+  "name": "budget_overrun",
+  "description": "Forces flight + hotel results to exceed the total budget, triggering the orchestrator to surface options and ask the user to adjust budget or dates.",
+  "overrides": {
+    "flights": {
+      "min_price_multiplier": 1.8
+    },
+    "hotels": {
+      "min_price_multiplier": 1.8
+    }
+  }
+}

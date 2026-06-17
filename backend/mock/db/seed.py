@@ -1,5 +1,6 @@
 """
-Seed script: populates flights.db, hotels.db, and pois.db with realistic mock data.
+Seed script: populates flights.db, hotels.db, and pois.db with Indian mock data.
+All prices are in INR (₹).
 
 Run once before starting the mock API:
     python -m mock.db.seed
@@ -22,44 +23,49 @@ POIS_DB = DB_DIR / "pois.db"
 
 random.seed(42)
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 
 def _uid() -> str:
     return str(uuid.uuid4())[:8]
 
 
 # ---------------------------------------------------------------------------
-# Flights — ~50 rows
+# Flights — Indian domestic + international routes, prices in INR
 # ---------------------------------------------------------------------------
 
 AIRLINES = [
-    ("Air France", "AF"),
-    ("Delta", "DL"),
-    ("United", "UA"),
-    ("British Airways", "BA"),
-    ("Lufthansa", "LH"),
-    ("Emirates", "EK"),
-    ("American Airlines", "AA"),
-    ("KLM", "KL"),
-    ("Singapore Airlines", "SQ"),
-    ("Qatar Airways", "QR"),
+    ("IndiGo", "6E"),
+    ("Air India", "AI"),
+    ("SpiceJet", "SG"),
+    ("Vistara", "UK"),
+    ("Go First", "G8"),
+    ("AirAsia India", "I5"),
+    ("Akasa Air", "QP"),
+    ("Air India Express", "IX"),
 ]
 
-ROUTES = [
-    ("JFK", "CDG"),
-    ("JFK", "LHR"),
-    ("LAX", "CDG"),
-    ("ORD", "FRA"),
-    ("JFK", "NRT"),
-    ("LAX", "SYD"),
-    ("JFK", "DXB"),
-    ("BOS", "CDG"),
-    ("MIA", "LHR"),
-    ("SFO", "NRT"),
+# Domestic routes
+DOMESTIC_ROUTES = [
+    ("DEL", "BOM"),   # Delhi ↔ Mumbai
+    ("DEL", "BLR"),   # Delhi ↔ Bangalore
+    ("DEL", "MAA"),   # Delhi ↔ Chennai
+    ("DEL", "HYD"),   # Delhi ↔ Hyderabad
+    ("DEL", "GOI"),   # Delhi ↔ Goa
+    ("DEL", "CCU"),   # Delhi ↔ Kolkata
+    ("DEL", "JAI"),   # Delhi ↔ Jaipur
+    ("DEL", "COK"),   # Delhi ↔ Kochi
+    ("BOM", "BLR"),   # Mumbai ↔ Bangalore
+    ("BOM", "MAA"),   # Mumbai ↔ Chennai
+    ("BOM", "HYD"),   # Mumbai ↔ Hyderabad
+    ("BOM", "GOI"),   # Mumbai ↔ Goa
+    ("BOM", "JAI"),   # Mumbai ↔ Jaipur
+    ("BOM", "COK"),   # Mumbai ↔ Kochi
+    ("BLR", "HYD"),   # Bangalore ↔ Hyderabad
+    ("BLR", "MAA"),   # Bangalore ↔ Chennai
+    ("BLR", "COK"),   # Bangalore ↔ Kochi
 ]
+
+# Return legs
+ALL_ROUTES = DOMESTIC_ROUTES + [(dst, orig) for orig, dst in DOMESTIC_ROUTES]
 
 
 def seed_flights() -> None:
@@ -89,15 +95,17 @@ def seed_flights() -> None:
     rows = []
     base_date = date.today() + timedelta(days=30)
 
-    for i in range(52):
+    for i in range(60):
         airline, code = random.choice(AIRLINES)
-        origin, destination = random.choice(ROUTES)
+        origin, destination = random.choice(ALL_ROUTES)
         depart_date = base_date + timedelta(days=random.randint(0, 90))
         hour = random.randint(5, 22)
-        duration = random.randint(360, 840)  # 6–14 hours
-        stops = random.choices([0, 1, 2], weights=[50, 35, 15])[0]
-        price = round(random.uniform(280, 1800), 2)
-        seats = random.randint(1, 30)
+        # Domestic Indian flights: 1.5–3 hours
+        duration = random.randint(90, 180)
+        stops = random.choices([0, 1], weights=[75, 25])[0]
+        # INR prices: ₹2,500 – ₹15,000 per person
+        price = round(random.uniform(2500, 15000), 0)
+        seats = random.randint(1, 40)
 
         rows.append((
             _uid(),
@@ -126,49 +134,55 @@ def seed_flights() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Hotels — ~30 rows
+# Hotels — Indian cities, prices in INR per night
 # ---------------------------------------------------------------------------
 
 HOTEL_DATA = [
-    # (name, city, tier, star, price_per_night)
-    ("Le Marais Boutique", "Paris", "upscale", 4.0, 180),
-    ("Hôtel de Fleurie", "Paris", "midscale", 3.5, 110),
-    ("Budget Inn Montparnasse", "Paris", "budget", 2.0, 65),
-    ("Ritz Paris", "Paris", "luxury", 5.0, 950),
-    ("The Savoy", "London", "luxury", 5.0, 820),
-    ("Premier Inn Waterloo", "London", "budget", 2.5, 75),
-    ("Marriott Park Lane", "London", "upscale", 4.5, 280),
-    ("citizenM Shoreditch", "London", "midscale", 3.5, 140),
-    ("Hotel de Rome", "Berlin", "upscale", 4.5, 220),
-    ("Meininger Berlin", "Berlin", "budget", 2.0, 55),
-    ("Hotel Adlon Kempinski", "Berlin", "luxury", 5.0, 680),
-    ("25hours Hotel", "Berlin", "midscale", 3.5, 120),
-    ("Aman Tokyo", "Tokyo", "luxury", 5.0, 1100),
-    ("Dormy Inn Asakusa", "Tokyo", "midscale", 3.0, 95),
-    ("Khaosan World Kabuki", "Tokyo", "budget", 2.0, 45),
-    ("Park Hyatt Tokyo", "Tokyo", "luxury", 5.0, 780),
-    ("Sofitel Dubai", "Dubai", "luxury", 5.0, 420),
-    ("Ibis Dubai", "Dubai", "budget", 2.5, 70),
-    ("JW Marriott Dubai", "Dubai", "upscale", 4.5, 310),
-    ("Citymax Hotel Dubai", "Dubai", "midscale", 3.0, 105),
-    ("Park Hyatt Sydney", "Sydney", "luxury", 5.0, 580),
-    ("Ibis Sydney", "Sydney", "budget", 2.5, 80),
-    ("QT Sydney", "Sydney", "upscale", 4.5, 250),
-    ("Meriton Suites Sydney", "Sydney", "midscale", 3.5, 130),
-    ("The St. Regis New York", "New York", "luxury", 5.0, 900),
-    ("Pod 51 Hotel", "New York", "budget", 2.5, 90),
-    ("citizenM New York", "New York", "midscale", 3.5, 160),
-    ("The Peninsula Chicago", "Chicago", "luxury", 5.0, 560),
-    ("Hampton Inn Chicago", "Chicago", "midscale", 3.0, 130),
-    ("Freehand Chicago", "Chicago", "budget", 2.5, 85),
+    # (name, city, tier, star, price_per_night_inr)
+    # Goa
+    ("The Leela Goa", "Goa", "luxury", 5.0, 18000),
+    ("Taj Holiday Village Goa", "Goa", "luxury", 5.0, 22000),
+    ("Novotel Goa Resort", "Goa", "upscale", 4.0, 8500),
+    ("La Calypso Baga", "Goa", "midscale", 3.0, 3200),
+    ("OYO Rooms Calangute Beach", "Goa", "budget", 2.0, 1200),
+    # Jaipur
+    ("Rambagh Palace", "Jaipur", "luxury", 5.0, 35000),
+    ("Taj Jai Mahal Palace", "Jaipur", "luxury", 5.0, 28000),
+    ("ITC Rajputana", "Jaipur", "upscale", 4.5, 9500),
+    ("Sarovar Portico Jaipur", "Jaipur", "midscale", 3.5, 3800),
+    ("Hotel Pearl Palace", "Jaipur", "budget", 2.5, 1500),
+    # Udaipur
+    ("The Oberoi Udaivilas", "Udaipur", "luxury", 5.0, 55000),
+    ("Taj Lake Palace", "Udaipur", "luxury", 5.0, 42000),
+    ("Radisson Blu Udaipur", "Udaipur", "upscale", 4.0, 7200),
+    ("Hotel Mahendra Prakash", "Udaipur", "midscale", 3.0, 2800),
+    ("Zostel Udaipur", "Udaipur", "budget", 2.0, 800),
+    # Manali
+    ("The Himalayan Manali", "Manali", "luxury", 5.0, 15000),
+    ("Sterling Manali", "Manali", "upscale", 4.0, 6500),
+    ("Snow Valley Resorts", "Manali", "midscale", 3.0, 3000),
+    ("Zostel Manali", "Manali", "budget", 2.0, 700),
+    ("Hotel Rockway Manali", "Manali", "budget", 2.5, 1200),
+    # Kerala (Kochi)
+    ("CGH Earth Brunton Boatyard", "Kochi", "luxury", 5.0, 16000),
+    ("Taj Malabar Resort", "Kochi", "luxury", 5.0, 20000),
+    ("Holiday Inn Kochi", "Kochi", "upscale", 4.0, 6800),
+    ("Fort House Hotel Kochi", "Kochi", "midscale", 3.5, 3200),
+    ("Zostel Kochi", "Kochi", "budget", 2.0, 900),
+    # Varanasi
+    ("Taj Ganges Varanasi", "Varanasi", "luxury", 5.0, 18000),
+    ("Ramada Plaza Varanasi", "Varanasi", "upscale", 4.0, 6000),
+    ("Brijrama Palace", "Varanasi", "upscale", 4.5, 12000),
+    ("Hotel Surya Varanasi", "Varanasi", "midscale", 3.0, 2200),
+    ("BrownBread Hostel Varanasi", "Varanasi", "budget", 2.0, 600),
 ]
 
 AMENITIES_POOL = [
-    ["WiFi", "Breakfast", "Pool", "Spa", "Gym", "Concierge", "Bar"],
-    ["WiFi", "Gym", "Breakfast"],
-    ["WiFi", "Parking", "Gym"],
-    ["WiFi", "Pool", "Bar", "Room Service"],
-    ["WiFi", "Breakfast", "Bar"],
+    ["WiFi", "Pool", "Spa", "Gym", "Restaurant", "Room Service", "Bar"],
+    ["WiFi", "Breakfast", "Pool", "Gym"],
+    ["WiFi", "Restaurant", "Parking", "Gym"],
+    ["WiFi", "Room Service", "Bar", "Laundry"],
+    ["WiFi", "Breakfast"],
 ]
 
 
@@ -194,14 +208,12 @@ def seed_hotels() -> None:
     )
 
     CITY_COORDS = {
-        "Paris": (48.8566, 2.3522),
-        "London": (51.5074, -0.1278),
-        "Berlin": (52.5200, 13.4050),
-        "Tokyo": (35.6762, 139.6503),
-        "Dubai": (25.2048, 55.2708),
-        "Sydney": (-33.8688, 151.2093),
-        "New York": (40.7128, -74.0060),
-        "Chicago": (41.8781, -87.6298),
+        "Goa": (15.2993, 74.1240),
+        "Jaipur": (26.9124, 75.7873),
+        "Udaipur": (24.5854, 73.7125),
+        "Manali": (32.2432, 77.1892),
+        "Kochi": (9.9312, 76.2673),
+        "Varanasi": (25.3176, 82.9739),
     }
 
     rows = []
@@ -233,89 +245,65 @@ def seed_hotels() -> None:
 
 
 # ---------------------------------------------------------------------------
-# POIs — ~100 rows
+# POIs — Indian destinations, entry fees in INR
 # ---------------------------------------------------------------------------
 
 POI_DATA = [
-    # Paris
-    ("Eiffel Tower", "Paris", "landmark", "Iconic iron lattice tower on the Champ de Mars.", 48.8584, 2.2945, 120, 28.0, False),
-    ("Louvre Museum", "Paris", "museum", "World's largest art museum and a historic monument.", 48.8606, 2.3376, 180, 17.0, True),
-    ("Musée d'Orsay", "Paris", "museum", "Impressionist art in a converted railway station.", 48.8600, 2.3266, 150, 16.0, True),
-    ("Notre-Dame Cathedral", "Paris", "religious", "Medieval Catholic cathedral on the Île de la Cité.", 48.8529, 2.3500, 90, 0.0, True),
-    ("Luxembourg Gardens", "Paris", "park", "Formal French gardens with fountains and statues.", 48.8462, 2.3372, 60, 0.0, False),
-    ("Palace of Versailles", "Paris", "landmark", "Royal château and gardens southwest of Paris.", 48.8049, 2.1204, 240, 18.0, False),
-    ("Sacré-Cœur", "Paris", "religious", "White-domed basilica atop the Montmartre hill.", 48.8867, 2.3431, 60, 0.0, False),
-    ("Centre Pompidou", "Paris", "museum", "Modern art museum with distinctive architecture.", 48.8607, 2.3522, 120, 15.0, True),
-    ("Champs-Élysées", "Paris", "shopping", "Iconic avenue lined with shops and cafés.", 48.8698, 2.3078, 90, 0.0, False),
-    ("Seine River Cruise", "Paris", "entertainment", "One-hour boat tour along the Seine.", 48.8583, 2.3404, 75, 15.0, False),
-    # London
-    ("British Museum", "London", "museum", "World-class collection of human history and culture.", 51.5194, -0.1270, 180, 0.0, True),
-    ("Tower of London", "London", "landmark", "Historic castle and home of the Crown Jewels.", 51.5081, -0.0759, 120, 30.0, True),
-    ("Hyde Park", "London", "park", "Royal park in central London.", 51.5073, -0.1657, 90, 0.0, False),
-    ("Tate Modern", "London", "museum", "Modern and contemporary art in a former power station.", 51.5076, -0.0994, 120, 0.0, True),
-    ("Covent Garden", "London", "shopping", "Market and entertainment district.", 51.5117, -0.1240, 90, 0.0, False),
-    ("Westminster Abbey", "London", "religious", "Gothic abbey church and royal coronation venue.", 51.4994, -0.1273, 90, 27.0, True),
-    ("Buckingham Palace", "London", "landmark", "Official London residence of the monarch.", 51.5014, -0.1419, 60, 0.0, False),
-    ("The Shard", "London", "landmark", "Skyscraper with a public viewing gallery.", 51.5045, -0.0865, 60, 32.0, True),
-    ("Borough Market", "London", "restaurant", "London's oldest food market.", 51.5055, -0.0910, 60, 0.0, False),
-    ("National Gallery", "London", "museum", "Western European paintings from the 13th to 19th centuries.", 51.5089, -0.1283, 120, 0.0, True),
-    # Berlin
-    ("Brandenburg Gate", "Berlin", "landmark", "Neoclassical triumphal arch, Berlin's symbol.", 52.5163, 13.3777, 45, 0.0, False),
-    ("Berlin Wall Memorial", "Berlin", "landmark", "Documentation and memorial site of the former wall.", 52.5351, 13.3904, 90, 0.0, False),
-    ("Pergamon Museum", "Berlin", "museum", "Reconstructed ancient architecture including the Pergamon Altar.", 52.5212, 13.3970, 150, 12.0, True),
-    ("Tiergarten", "Berlin", "park", "Large urban park in the heart of Berlin.", 52.5145, 13.3501, 90, 0.0, False),
-    ("East Side Gallery", "Berlin", "landmark", "Outdoor gallery on a surviving section of the Berlin Wall.", 52.5054, 13.4394, 60, 0.0, False),
-    ("Charlottenburg Palace", "Berlin", "landmark", "Baroque palace and gardens.", 52.5206, 13.2956, 120, 12.0, False),
-    ("Topography of Terror", "Berlin", "museum", "Documentation centre on Nazi terror and the SS.", 52.5073, 13.3819, 90, 0.0, True),
-    ("Berlin Zoo", "Berlin", "entertainment", "One of the world's most popular zoos.", 52.5081, 13.3372, 180, 20.0, False),
-    ("Hackescher Markt", "Berlin", "shopping", "Trendy courtyard complex with shops and restaurants.", 52.5227, 13.4018, 90, 0.0, False),
-    ("Jewish Museum Berlin", "Berlin", "museum", "History of Jews in Germany over two millennia.", 52.5021, 13.3938, 120, 8.0, True),
-    # Tokyo
-    ("Senso-ji Temple", "Tokyo", "religious", "Tokyo's oldest temple in Asakusa.", 35.7148, 139.7967, 90, 0.0, False),
-    ("Shibuya Crossing", "Tokyo", "landmark", "World's busiest pedestrian crossing.", 35.6595, 139.7005, 30, 0.0, False),
-    ("Tokyo National Museum", "Tokyo", "museum", "Japan's oldest and largest museum.", 35.7189, 139.7760, 150, 10.0, True),
-    ("Shinjuku Gyoen", "Tokyo", "park", "Large national garden with Japanese, French and English sections.", 35.6852, 139.7100, 90, 5.0, False),
-    ("teamLab Borderless", "Tokyo", "entertainment", "Immersive digital art museum.", 35.6254, 139.7753, 180, 32.0, True),
-    ("Meiji Shrine", "Tokyo", "religious", "Shinto shrine dedicated to Emperor Meiji.", 35.6764, 139.6993, 60, 0.0, False),
-    ("Tsukiji Outer Market", "Tokyo", "restaurant", "Famous fish market with fresh sushi and street food.", 35.6654, 139.7706, 90, 0.0, False),
-    ("Akihabara", "Tokyo", "shopping", "Electronics and anime shopping district.", 35.7022, 139.7742, 120, 0.0, False),
-    ("Harajuku Takeshita Street", "Tokyo", "shopping", "Youth fashion and street food in Harajuku.", 35.6702, 139.7026, 90, 0.0, False),
-    ("Tokyo Skytree", "Tokyo", "landmark", "World's second-tallest structure with observation decks.", 35.7101, 139.8107, 90, 22.0, True),
-    # Dubai
-    ("Burj Khalifa", "Dubai", "landmark", "World's tallest building with observation decks.", 25.1972, 55.2744, 90, 40.0, True),
-    ("Dubai Mall", "Dubai", "shopping", "One of the world's largest shopping centres.", 25.1983, 55.2791, 180, 0.0, True),
-    ("Dubai Museum", "Dubai", "museum", "History of Dubai in the Al Fahidi Fort.", 25.2644, 55.2975, 90, 3.0, True),
-    ("Palm Jumeirah", "Dubai", "landmark", "Artificial palm-shaped archipelago.", 25.1124, 55.1390, 60, 0.0, False),
-    ("Gold Souk", "Dubai", "shopping", "Traditional market for gold jewellery.", 25.2856, 55.3026, 90, 0.0, False),
-    ("Desert Safari", "Dubai", "entertainment", "Dune bashing, camel ride, and Bedouin camp dinner.", 24.9000, 55.1000, 360, 85.0, False),
-    ("Dubai Aquarium", "Dubai", "entertainment", "One of the world's largest indoor aquariums.", 25.1983, 55.2791, 90, 30.0, True),
-    ("Jumeirah Beach", "Dubai", "beach", "White sand beach with views of the Burj Al Arab.", 25.1412, 55.1852, 120, 0.0, False),
-    # Sydney
-    ("Sydney Opera House", "Sydney", "landmark", "Iconic multi-venue performing arts centre.", -33.8568, 151.2153, 90, 45.0, True),
-    ("Bondi Beach", "Sydney", "beach", "Famous surf beach in eastern Sydney.", -33.8908, 151.2743, 120, 0.0, False),
-    ("Taronga Zoo", "Sydney", "entertainment", "Harbour-side zoo with Australian wildlife.", -33.8432, 151.2411, 180, 46.0, False),
-    ("Royal Botanic Garden", "Sydney", "park", "Living museum adjacent to the Sydney CBD.", -33.8642, 151.2166, 90, 0.0, False),
-    ("Australian Museum", "Sydney", "museum", "Natural history and culture museum.", -33.8742, 151.2131, 120, 15.0, True),
-    ("The Rocks", "Sydney", "landmark", "Historic district with sandstone buildings and markets.", -33.8599, 151.2090, 90, 0.0, False),
-    ("Darling Harbour", "Sydney", "entertainment", "Waterfront precinct with museums, aquarium, and restaurants.", -33.8721, 151.1988, 120, 0.0, False),
-    ("Manly Beach", "Sydney", "beach", "Surf beach accessed by ferry from Circular Quay.", -33.7972, 151.2876, 180, 0.0, False),
-    # New York
-    ("Metropolitan Museum of Art", "New York", "museum", "One of the world's greatest art museums.", 40.7794, -73.9632, 240, 25.0, True),
-    ("Central Park", "New York", "park", "843-acre urban park in Manhattan.", 40.7851, -73.9683, 180, 0.0, False),
-    ("Statue of Liberty", "New York", "landmark", "Iconic copper statue on Liberty Island.", 40.6892, -74.0445, 180, 24.0, False),
-    ("Brooklyn Bridge", "New York", "landmark", "Iconic suspension bridge connecting Manhattan and Brooklyn.", 40.7061, -73.9969, 60, 0.0, False),
-    ("MoMA", "New York", "museum", "Museum of Modern Art with an unmatched collection.", 40.7614, -73.9776, 150, 25.0, True),
-    ("High Line", "New York", "park", "Elevated linear park on a disused railway line.", 40.7480, -74.0048, 90, 0.0, False),
-    ("Times Square", "New York", "landmark", "Neon-lit commercial hub of Midtown Manhattan.", 40.7580, -73.9855, 45, 0.0, False),
-    ("One World Observatory", "New York", "landmark", "Observation deck atop One World Trade Center.", 40.7130, -74.0134, 90, 45.0, True),
-    # Chicago
-    ("Art Institute of Chicago", "Chicago", "museum", "Encyclopedic art museum in Grant Park.", 41.8796, -87.6237, 180, 25.0, True),
-    ("Millennium Park", "Chicago", "park", "Iconic park home to Cloud Gate (The Bean).", 41.8827, -87.6233, 90, 0.0, False),
-    ("Willis Tower Skydeck", "Chicago", "landmark", "Glass-floor observation deck on the 103rd floor.", 41.8789, -87.6359, 90, 28.0, True),
-    ("Navy Pier", "Chicago", "entertainment", "Lakefront entertainment complex.", 41.8917, -87.6086, 120, 0.0, False),
-    ("Chicago Riverwalk", "Chicago", "park", "Pedestrian walkway along the Chicago River.", 41.8869, -87.6310, 60, 0.0, False),
-    ("Field Museum", "Chicago", "museum", "Natural history museum with the largest T. rex skeleton.", 41.8662, -87.6170, 180, 24.0, True),
-    ("Wrigley Field", "Chicago", "sport", "Historic baseball stadium, home of the Cubs.", 41.9484, -87.6553, 180, 40.0, False),
+    # Goa
+    ("Baga Beach", "Goa", "beach", "Lively beach known for water sports and shacks.", 15.5560, 73.7518, 180, 0, False),
+    ("Calangute Beach", "Goa", "beach", "The Queen of Beaches — Goa's largest and most popular.", 15.5440, 73.7528, 150, 0, False),
+    ("Basilica of Bom Jesus", "Goa", "religious", "UNESCO World Heritage church housing St. Francis Xavier's remains.", 15.5009, 73.9116, 60, 0, True),
+    ("Fort Aguada", "Goa", "landmark", "17th-century Portuguese fort overlooking the Arabian Sea.", 15.4947, 73.7760, 90, 50, False),
+    ("Dudhsagar Falls", "Goa", "landmark", "One of India's tallest waterfalls on the Goa-Karnataka border.", 15.3139, 74.3140, 240, 400, False),
+    ("Saturday Night Market Arpora", "Goa", "shopping", "Vibrant flea market with Indian crafts, food, and live music.", 15.5560, 73.7630, 120, 0, False),
+    ("Goa State Museum", "Goa", "museum", "Exhibits on Goa's cultural heritage and history.", 15.4975, 73.8278, 90, 10, True),
+    ("Casino Goa", "Goa", "entertainment", "Floating casino on the Mandovi River.", 15.4921, 73.8148, 180, 2000, True),
+    ("Anjuna Flea Market", "Goa", "shopping", "Famous Wednesday market with antiques and clothing.", 15.5789, 73.7409, 120, 0, False),
+    ("Chapora Fort", "Goa", "landmark", "Hilltop fort offering panoramic views — made famous by Dil Chahta Hai.", 15.6009, 73.7392, 60, 0, False),
+    # Jaipur
+    ("Amber Fort", "Jaipur", "landmark", "Magnificent hilltop Rajput fort with mirror palace.", 26.9855, 75.8513, 180, 100, False),
+    ("City Palace Jaipur", "Jaipur", "landmark", "Royal palace complex in the heart of the Pink City.", 26.9258, 75.8237, 120, 200, True),
+    ("Hawa Mahal", "Jaipur", "landmark", "Palace of Winds — iconic five-storey pink sandstone façade.", 26.9239, 75.8267, 60, 50, False),
+    ("Jantar Mantar Jaipur", "Jaipur", "landmark", "UNESCO-listed 18th-century astronomical observatory.", 26.9247, 75.8242, 90, 50, False),
+    ("Jaipur Literature Festival Venue", "Jaipur", "entertainment", "World's largest free literary festival at Diggi Palace.", 26.8894, 75.8028, 120, 0, True),
+    ("Albert Hall Museum", "Jaipur", "museum", "Oldest museum of Rajasthan with artefacts and Egyptian mummy.", 26.9037, 75.8193, 120, 150, True),
+    ("Johari Bazaar", "Jaipur", "shopping", "Traditional market for gems, jewellery, and fabrics.", 26.9178, 75.8242, 90, 0, False),
+    ("Nahargarh Fort", "Jaipur", "landmark", "Hilltop fort with sunset views of Jaipur city.", 26.9427, 75.8084, 120, 50, False),
+    ("Birla Mandir Jaipur", "Jaipur", "religious", "Lakshmi Narayan temple made of white marble.", 26.8936, 75.8119, 60, 0, True),
+    ("Chokhi Dhani", "Jaipur", "entertainment", "Ethnic Rajasthani village experience with folk arts.", 26.7773, 75.8567, 180, 700, False),
+    # Udaipur
+    ("City Palace Udaipur", "Udaipur", "landmark", "Largest palace complex in Rajasthan, overlooking Lake Pichola.", 24.5752, 73.6830, 180, 300, True),
+    ("Lake Pichola", "Udaipur", "landmark", "Scenic artificial lake with island palaces — boat ride included.", 24.5744, 73.6807, 90, 400, False),
+    ("Jagdish Temple", "Udaipur", "religious", "Largest temple in Udaipur, dedicated to Lord Vishnu.", 24.5775, 73.6827, 60, 0, True),
+    ("Saheliyon Ki Bari", "Udaipur", "park", "Garden of the Maidens with fountains and lotus pools.", 24.5878, 73.6801, 60, 25, False),
+    ("Fateh Sagar Lake", "Udaipur", "landmark", "Man-made lake with a small island garden.", 24.5970, 73.6735, 60, 0, False),
+    ("Bagore Ki Haveli", "Udaipur", "museum", "18th-century haveli with royal artifacts and puppet shows.", 24.5757, 73.6843, 90, 100, True),
+    ("Shilpgram Crafts Village", "Udaipur", "shopping", "Rural arts and crafts complex showcasing tribal culture.", 24.6026, 73.6672, 120, 50, False),
+    # Manali
+    ("Solang Valley", "Manali", "landmark", "Scenic valley known for skiing, zorbing, and paragliding.", 32.3177, 77.1527, 240, 0, False),
+    ("Rohtang Pass", "Manali", "landmark", "High mountain pass with snow even in summer.", 32.3744, 77.2504, 300, 550, False),
+    ("Hadimba Temple", "Manali", "religious", "Unique wooden temple dedicated to Goddess Hadimba in cedar forest.", 32.2337, 77.1760, 60, 0, True),
+    ("Mall Road Manali", "Manali", "shopping", "Main shopping street for woolens, artifacts, and street food.", 32.2432, 77.1892, 90, 0, False),
+    ("Beas River", "Manali", "entertainment", "River rafting and riverside walks.", 32.2390, 77.1915, 120, 600, False),
+    ("Museum of Himachal Culture", "Manali", "museum", "Cultural artifacts and exhibits on Himachali life.", 32.2418, 77.1881, 60, 20, True),
+    ("Vashisht Hot Springs", "Manali", "landmark", "Natural sulphur hot springs in a traditional village.", 32.2572, 77.2017, 60, 0, False),
+    # Kochi
+    ("Chinese Fishing Nets", "Kochi", "landmark", "Iconic cantilevered fishing nets on Fort Kochi waterfront.", 9.9646, 76.2432, 60, 0, False),
+    ("Mattancherry Palace", "Kochi", "museum", "16th-century Portuguese palace with Kerala murals.", 9.9569, 76.2596, 90, 5, True),
+    ("Jewish Synagogue Mattancherry", "Kochi", "religious", "Oldest active synagogue in the Commonwealth.", 9.9553, 76.2609, 60, 5, True),
+    ("Fort Kochi Beach", "Kochi", "beach", "Serene beach with views of container ships and backwaters.", 9.9626, 76.2422, 90, 0, False),
+    ("Backwater Houseboat Cruise", "Kochi", "entertainment", "Half-day houseboat experience through Kerala backwaters.", 9.9312, 76.2673, 240, 1500, False),
+    ("Kerala Folklore Museum", "Kochi", "museum", "Three-storeyed museum with 4,000+ antique artefacts.", 9.9890, 76.2943, 90, 100, True),
+    ("Spice Market Ernakulam", "Kochi", "shopping", "Wholesale spice market with cardamom, pepper, and more.", 9.9826, 76.2880, 60, 0, False),
+    # Varanasi
+    ("Dashashwamedh Ghat", "Varanasi", "landmark", "Main ghat and site of spectacular nightly Ganga Aarti.", 25.3067, 83.0107, 120, 0, False),
+    ("Kashi Vishwanath Temple", "Varanasi", "religious", "One of India's holiest Shiva temples on the banks of the Ganges.", 25.3109, 83.0107, 90, 0, True),
+    ("Sarnath", "Varanasi", "landmark", "Deer Park where Buddha gave his first sermon — Buddhist pilgrimage site.", 25.3795, 83.0239, 150, 20, False),
+    ("Manikarnika Ghat", "Varanasi", "landmark", "Sacred cremation ghat on the Ganges, burning 24/7.", 25.3097, 83.0125, 60, 0, False),
+    ("Bharat Kala Bhavan Museum", "Varanasi", "museum", "Museum at BHU with textiles, paintings, and antiquities.", 25.2677, 82.9913, 120, 30, True),
+    ("Morning Boat Ride on Ganges", "Varanasi", "entertainment", "Sunrise boat ride past the ghats — mystical experience.", 25.3067, 83.0107, 90, 500, False),
+    ("Vishwanath Lane Market", "Varanasi", "shopping", "Narrow lanes with silk sarees, religious items, and sweets.", 25.3109, 83.0107, 90, 0, False),
+    ("Tulsi Manas Temple", "Varanasi", "religious", "Modern marble temple dedicated to Lord Rama.", 25.3073, 83.0010, 45, 0, True),
 ]
 
 
@@ -351,9 +339,9 @@ def seed_pois() -> None:
             lat,
             lon,
             dur,
-            fee,
+            fee,   # entry fee in INR (stored in the "entry_fee_usd" column, now represents INR)
             1 if indoor else 0,
-            round(random.uniform(3.8, 5.0), 1),
+            round(random.uniform(3.9, 5.0), 1),
         ))
 
     conn.executemany(
@@ -373,4 +361,4 @@ if __name__ == "__main__":
     seed_flights()
     seed_hotels()
     seed_pois()
-    print("\n🎉  All databases seeded successfully.")
+    print("\n🎉  All databases seeded successfully (Indian routes, ₹ prices).")
