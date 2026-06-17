@@ -11,6 +11,9 @@ export default function Home() {
 
   async function handleSubmit(data: TripRequestForm) {
     const { plan_id } = await createPlan(data);
+    // Mark this plan as intentionally navigated-to (not a pop/direct-URL).
+    // The plan page checks for this and redirects home if missing.
+    sessionStorage.setItem("voyager_active_plan", plan_id);
     router.push(`/plan/${plan_id}`);
   }
 

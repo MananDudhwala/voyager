@@ -1,5 +1,6 @@
 "use client";
-import { use } from "react";
+import { use, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { usePlanStream } from "@/hooks/usePlanStream";
 import { useVoyagerStore } from "@/lib/store";
 import { OrchestratorLog } from "@/components/planning/OrchestratorLog";
@@ -17,9 +18,25 @@ type Props = { params: Promise<{ planId: string }> };
 
 export default function PlanPage({ params }: Props) {
   const { planId } = use(params);
+  const router = useRouter();
+
+  // Redirect to home if we landed here without going through the form
+  // (direct URL, browser back/forward "pop", or page refresh).
+  // NOTE: we don't delete the key here because React StrictMode runs effects
+  // twice in dev — deleting on the first run causes the second run to redirect.
+  // The key is overwritten naturally on each new plan creation.
+  useEffect(() => {
+    const activePlan = sessionStorage.getItem("voyager_active_plan");
+    if (activePlan !== planId) {
+      router.replace("/");
+    }
+  }, [planId, router]);
+
+  // Connect to the SSE stream for this plan.
   usePlanStream(planId);
 
   const { status, plan, events, error } = useVoyagerStore();
+
 
   const progress = Math.min(
     100,

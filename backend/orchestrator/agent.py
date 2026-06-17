@@ -155,6 +155,35 @@ def _unwrap_exception(exc: BaseException) -> str:
     return msg if msg else repr(exc)
 
 
+def _parse_tool_response(text: str, fallback: str = "[]") -> Any:
+    """
+    Parse an MCP tool response text as JSON.
+
+    MCP server call_tool handlers often catch internal exceptions and return
+    them as plain text strings like:
+        "Error: Connection refused"
+        "Error: [Errno 61] Connection refused"
+
+    Calling json.loads() on these produces the confusing:
+        JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+    This helper detects that case and raises RuntimeError with the actual
+    error text so it surfaces correctly in the SSE stream.
+    """
+    if not text or not text.strip():
+        return json.loads(fallback)
+    stripped = text.strip()
+    # MCP server error responses are plain text starting with "Error:"
+    if stripped.startswith("Error:"):
+        raise RuntimeError(stripped)
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError as e:
+        # Surface the raw text so the caller knows what was returned
+        raise RuntimeError(
+            f"Invalid JSON from MCP tool (got: {stripped[:120]!r})"
+        ) from e
+
 
 class VoyagerOrchestrator:
     """
@@ -436,8 +465,10 @@ class VoyagerOrchestrator:
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     result = await session.call_tool(tool, arguments=kwargs)
-                    text = result.content[0].text if result.content else "[]"
-                    return json.loads(text)
+                    text = result.content[0].text if result.content else ""
+                    return _parse_tool_response(text, fallback="[]")
+        except RuntimeError:
+            raise
         except BaseException as exc:
             raise RuntimeError(
                 f"flight_agent.{tool} failed: {_unwrap_exception(exc)}"
@@ -449,8 +480,10 @@ class VoyagerOrchestrator:
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     result = await session.call_tool(tool, arguments=kwargs)
-                    text = result.content[0].text if result.content else "[]"
-                    return json.loads(text)
+                    text = result.content[0].text if result.content else ""
+                    return _parse_tool_response(text, fallback="[]")
+        except RuntimeError:
+            raise
         except BaseException as exc:
             raise RuntimeError(
                 f"hotel_agent.{tool} failed: {_unwrap_exception(exc)}"
@@ -462,8 +495,10 @@ class VoyagerOrchestrator:
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     result = await session.call_tool(tool, arguments=kwargs)
-                    text = result.content[0].text if result.content else "{}"
-                    return json.loads(text)
+                    text = result.content[0].text if result.content else ""
+                    return _parse_tool_response(text, fallback="{}")
+        except RuntimeError:
+            raise
         except BaseException as exc:
             raise RuntimeError(
                 f"itinerary_agent.{tool} failed: {_unwrap_exception(exc)}"
