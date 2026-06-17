@@ -16,7 +16,6 @@ from typing import Optional
 import httpx
 
 MOCK_API_URL = os.getenv("MOCK_API_URL", "http://localhost:8001")
-MOCK_SCENARIO = os.getenv("MOCK_SCENARIO", "")
 
 # Weather conditions mapped to rough probabilities per "season"
 _WEATHER_POOL = [

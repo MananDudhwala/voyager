@@ -11,13 +11,14 @@ from typing import Optional
 import httpx
 
 MOCK_API_URL = os.getenv("MOCK_API_URL", "http://localhost:8001")
-MOCK_SCENARIO = os.getenv("MOCK_SCENARIO", "")
 
 
 def _headers() -> dict:
+    """Build request headers, reading MOCK_SCENARIO live so activate_scenario takes effect."""
     h = {}
-    if MOCK_SCENARIO:
-        h["X-Mock-Scenario"] = MOCK_SCENARIO
+    scenario = os.getenv("MOCK_SCENARIO", "")
+    if scenario:
+        h["X-Mock-Scenario"] = scenario
     return h
 
 

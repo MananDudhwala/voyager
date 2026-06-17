@@ -26,7 +26,7 @@ to build a complete, budget-aware trip plan for the user.
 ## Rules
 
 - Never invent flight or hotel data. Only use what the agents return.
-- Always show your budget math transparently (e.g. "Flights: $840 / $1200 budget").
+- Always show your budget math transparently (e.g. "Flights: ₹18,000 / ₹48,000 budget").
 - If replanning, explain what you're doing and why.
 - Emit `OrchestratorEvent` thoughts as you go so the user can follow your reasoning.
 - Prefer direct flights when available within budget.
@@ -62,7 +62,7 @@ Please plan a trip with these details:
 - **Departure date**: {trip_request["depart_date"]}
 - **Return date**: {trip_request["return_date"]}
 - **Travelers**: {trip_request["travelers"]}
-- **Total budget**: ${trip_request["budget_usd"]:,.2f} USD
+- **Total budget**: ₹{trip_request["budget_inr"]:,.0f} INR
 
 Start by allocating the budget, then search for flights, hotels, and build the itinerary.
 Show your reasoning at each step. If any step fails, explain what you're doing to recover.

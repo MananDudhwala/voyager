@@ -167,9 +167,9 @@ class VoyagerOrchestrator:
         await emit(
             "thinking",
             "orchestrator",
-            f"Budget: {request.budget_usd} USD — allocating 40/40/20 split\n"
-            f"  Flights: ${state.allocation.flights} | Hotels: ${state.allocation.hotels} | "
-            f"Activities: ${state.allocation.activities}",
+            f"Budget: ₹{request.budget_inr:,.0f} INR — allocating 40/40/20 split\n"
+            f"  Flights: ₹{state.allocation.flights:,.0f} | Hotels: ₹{state.allocation.hotels:,.0f} | "
+            f"Activities: ₹{state.allocation.activities:,.0f}",
         )
 
         flight_out, flight_ret = await self._plan_flights(state, emit)
@@ -179,7 +179,7 @@ class VoyagerOrchestrator:
         total_cost = round(
             state.flight_cost + state.hotel_cost + state.activities_cost, 2
         )
-        savings = round(request.budget_usd - total_cost, 2)
+        savings = round(request.budget_inr - total_cost, 2)
 
         status = PlanStatus.COMPLETED
         if flight_out is None or hotel is None:
@@ -187,7 +187,7 @@ class VoyagerOrchestrator:
         if state.is_over_budget():
             status = PlanStatus.NEEDS_INPUT
             state.warn(
-                f"Total cost {total_cost} exceeds budget {request.budget_usd}. "
+                f"Total cost ₹{total_cost:,.0f} exceeds budget ₹{request.budget_inr:,.0f}. "
                 "Consider increasing budget or adjusting dates."
             )
 
@@ -481,16 +481,16 @@ class VoyagerOrchestrator:
     ) -> str:
         dest = request.destination
         travelers = request.travelers
-        budget = request.budget_usd
+        budget = request.budget_inr
 
         if flight and hotel:
             return (
                 f"Your {state.nights}-night trip to {dest} for {travelers} traveler(s) is ready. "
                 f"Flying {flight.airline} ({flight.flight_number}), staying at {hotel.name}. "
-                f"Total cost: ${total_cost:,.2f} of your ${budget:,.2f} budget "
-                f"({'saving ' + f'${savings:,.2f}' if savings >= 0 else f'over budget by ${abs(savings):,.2f}'})."
+                f"Total cost: ₹{total_cost:,.0f} of your ₹{budget:,.0f} budget "
+                f"({'saving ₹' + f'{savings:,.0f}' if savings >= 0 else f'over budget by ₹{abs(savings):,.0f}' })."
             )
         return (
-            f"Partial plan for {dest} — some components could not be booked within your ${budget:,.2f} budget. "
+            f"Partial plan for {dest} — some components could not be booked within your ₹{budget:,.0f} budget. "
             "See warnings for details."
         )

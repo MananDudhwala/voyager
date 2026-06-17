@@ -81,7 +81,7 @@ class PlanRequestBody(BaseModel):
     depart_date: str
     return_date: str
     travelers: int = 1
-    budget_usd: float
+    budget_inr: float
 
 
 @app.post("/plan")
@@ -101,7 +101,7 @@ async def create_plan(body: PlanRequestBody):
         depart_date=date.fromisoformat(body.depart_date),
         return_date=date.fromisoformat(body.return_date),
         travelers=body.travelers,
-        budget_usd=body.budget_usd,
+        budget_inr=body.budget_inr,
     )
 
     async def run_planning():

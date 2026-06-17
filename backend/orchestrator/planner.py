@@ -14,7 +14,7 @@ from shared.budget import (
     shift_to_hotels,
     is_within_budget,
     remaining_budget,
-    format_usd,
+    format_inr,
     BudgetSummary,
 )
 from shared.models import BudgetAllocation, TripRequest
@@ -31,7 +31,7 @@ class PlanningState:
 
     def __init__(self, request: TripRequest) -> None:
         self.request = request
-        self.allocation: BudgetAllocation = default_allocation(request.budget_usd)
+        self.allocation: BudgetAllocation = default_allocation(request.budget_inr)
         self.budget_summary = BudgetSummary(allocation=self.allocation)
 
         self.flight_cost: float = 0.0
@@ -68,7 +68,7 @@ class PlanningState:
     @property
     def activities_budget(self) -> float:
         return remaining_budget(
-            self.request.budget_usd, self.flight_cost, self.hotel_cost
+            self.request.budget_inr, self.flight_cost, self.hotel_cost
         )
 
     def record_flight_cost(self, cost: float) -> None:
@@ -102,7 +102,7 @@ class PlanningState:
         self.flight_retries += 1
         self.warn(
             f"No flights found — shifted 10% from hotels to flights. "
-            f"New flight budget: {format_usd(self.allocation.flights)}"
+            f"New flight budget: {format_inr(self.allocation.flights)}"
         )
         return True
 
@@ -118,7 +118,7 @@ class PlanningState:
         self.hotel_retries += 1
         self.warn(
             f"No hotels found — shifted 10% from flights to hotels. "
-            f"New hotel budget: {format_usd(self.allocation.hotels)}"
+            f"New hotel budget: {format_inr(self.allocation.hotels)}"
         )
         return True
 
