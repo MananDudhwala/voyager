@@ -39,7 +39,7 @@ jobs:
         run: |
           cd backend
           uv sync
-          uv run ruff check .
+          uvx ruff check .
 
   build-and-push:
     name: Build & Push Docker Images
