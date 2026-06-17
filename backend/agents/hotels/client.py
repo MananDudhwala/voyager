@@ -5,6 +5,7 @@ Optional Duffel sandbox client for real hotel data.
 from __future__ import annotations
 
 import os
+
 import httpx
 
 DUFFEL_API_KEY = os.getenv("DUFFEL_API_KEY", "")

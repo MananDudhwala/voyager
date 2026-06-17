@@ -19,16 +19,14 @@ import os
 import uuid
 from collections import defaultdict
 from contextlib import asynccontextmanager
-from typing import Optional
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
-from shared.models import TripRequest, TripPlan, OrchestratorEvent
-
+from shared.models import OrchestratorEvent, TripPlan, TripRequest
 
 # ---------------------------------------------------------------------------
 # In-memory store for running/completed plans
@@ -115,7 +113,8 @@ async def create_plan(body: PlanRequestBody):
             plan = await orchestrator.plan(request, event_callback=push_event)
             _plans[plan_id] = plan
         except BaseException as e:
-            import traceback, sys
+            import sys
+            import traceback
             # Print full traceback to server stderr for debugging
             traceback.print_exc(file=sys.stderr)
             # Unwrap ExceptionGroup so the frontend gets the real error message
@@ -193,7 +192,6 @@ async def stream_plan(plan_id: str):
 # Scenarios
 # ---------------------------------------------------------------------------
 
-from pathlib import Path
 
 SCENARIOS_DIR = Path(__file__).parent.parent / "mock" / "scenarios"
 

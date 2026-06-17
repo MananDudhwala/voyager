@@ -33,37 +33,34 @@ Usage:
 
 from __future__ import annotations
 
-import asyncio
 import json
 import os
-import traceback
-from pathlib import Path
-
-from dotenv import load_dotenv
-
-# Load .env from the backend directory (two levels up from this file)
-load_dotenv(Path(__file__).parent.parent / ".env")
+import sys
 import uuid
 from collections.abc import AsyncGenerator
-from typing import Any, Optional
+from pathlib import Path
+from typing import Any
 
 import anthropic
+from dotenv import load_dotenv
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 from orchestrator.planner import PlanningState
-from orchestrator.prompts import ORCHESTRATOR_SYSTEM_PROMPT, build_planning_prompt, build_replan_prompt
 from shared.models import (
-    TripPlan,
-    TripRequest,
-    PlanStatus,
     FlightOption,
     HotelOption,
+    HotelTier,
     Itinerary,
     OrchestratorEvent,
+    PlanStatus,
     TravelClass,
-    HotelTier,
+    TripPlan,
+    TripRequest,
 )
+
+# Load .env from the backend directory (two levels up from this file)
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 MODEL = "claude-opus-4-5"
@@ -113,8 +110,6 @@ def _to_iata(name: str) -> str:
     return CITY_TO_IATA.get(name.lower(), name.upper())
 
 # Paths to each MCP server
-import sys
-
 BACKEND_DIR = Path(__file__).parent.parent
 PYTHON = str(Path(sys.executable))
 
@@ -209,7 +204,7 @@ class VoyagerOrchestrator:
     async def plan(
         self,
         request: TripRequest,
-        event_callback: Optional[AsyncGenerator] = None,
+        event_callback: AsyncGenerator | None = None,
     ) -> TripPlan:
         """
         Run the full planning loop for a TripRequest.
@@ -278,7 +273,7 @@ class VoyagerOrchestrator:
     # Flight planning
     # ------------------------------------------------------------------
 
-    async def _plan_flights(self, state: PlanningState, emit) -> tuple[Optional[FlightOption], Optional[FlightOption]]:
+    async def _plan_flights(self, state: PlanningState, emit) -> tuple[FlightOption | None, FlightOption | None]:
         """Search for outbound + return flights, with budget reallocation on failure."""
         request = state.request
 
@@ -350,7 +345,7 @@ class VoyagerOrchestrator:
     # Hotel planning
     # ------------------------------------------------------------------
 
-    async def _plan_hotel(self, state: PlanningState, emit) -> Optional[HotelOption]:
+    async def _plan_hotel(self, state: PlanningState, emit) -> HotelOption | None:
         request = state.request
 
         for attempt in range(PlanningState.MAX_HOTEL_RETRIES + 1):
@@ -414,7 +409,7 @@ class VoyagerOrchestrator:
     # Itinerary planning
     # ------------------------------------------------------------------
 
-    async def _plan_itinerary(self, state: PlanningState, emit) -> Optional[Itinerary]:
+    async def _plan_itinerary(self, state: PlanningState, emit) -> Itinerary | None:
         request = state.request
 
         await emit(
@@ -558,8 +553,8 @@ class VoyagerOrchestrator:
     @staticmethod
     def _build_summary(
         request: TripRequest,
-        flight: Optional[FlightOption],
-        hotel: Optional[HotelOption],
+        flight: FlightOption | None,
+        hotel: HotelOption | None,
         total_cost: float,
         savings: float,
         state: PlanningState,

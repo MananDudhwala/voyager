@@ -9,7 +9,6 @@ from dataclasses import dataclass
 
 from shared.models import BudgetAllocation
 
-
 # Default budget split percentages
 DEFAULT_FLIGHTS_PCT = 0.40
 DEFAULT_HOTELS_PCT = 0.40

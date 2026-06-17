@@ -13,8 +13,8 @@ from datetime import date
 
 os.environ["MOCK_SCENARIO"] = "no_flights"  # Force no flights
 
-from shared.models import TripRequest
 from orchestrator.agent import VoyagerOrchestrator
+from shared.models import TripRequest
 
 
 async def main():

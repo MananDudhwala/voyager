@@ -7,7 +7,6 @@ from __future__ import annotations
 import hashlib
 import os
 from datetime import date as _date
-from typing import Optional
 
 import httpx
 
@@ -29,9 +28,12 @@ _AMENITY_MAP = {
 
 
 def _stars_to_tier(rating: float) -> str:
-    if rating >= 4.5: return "luxury"
-    if rating >= 4.0: return "upscale"
-    if rating >= 3.0: return "midscale"
+    if rating >= 4.5:
+        return "luxury"
+    if rating >= 4.0:
+        return "upscale"
+    if rating >= 3.0:
+        return "midscale"
     return "budget"
 
 
@@ -61,8 +63,8 @@ def _serpapi_search_hotels(
     check_in: str,
     check_out: str,
     guests: int = 1,
-    max_price_per_night: Optional[float] = None,
-    tier: Optional[str] = None,
+    max_price_per_night: float | None = None,
+    tier: str | None = None,
 ) -> list[dict]:
     from serpapi import GoogleSearch
 
@@ -139,8 +141,8 @@ def _mock_search_hotels(
     check_in: str,
     check_out: str,
     guests: int = 1,
-    max_price_per_night: Optional[float] = None,
-    tier: Optional[str] = None,
+    max_price_per_night: float | None = None,
+    tier: str | None = None,
 ) -> list[dict]:
     params: dict = {
         "city": city, "check_in": check_in,
@@ -164,8 +166,8 @@ def search_hotels(
     check_in: str,
     check_out: str,
     guests: int = 1,
-    max_price_per_night: Optional[float] = None,
-    tier: Optional[str] = None,
+    max_price_per_night: float | None = None,
+    tier: str | None = None,
 ) -> list[dict]:
     """
     Search for available hotels in a city.

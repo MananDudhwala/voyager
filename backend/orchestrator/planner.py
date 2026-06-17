@@ -5,17 +5,15 @@ This is pure logic with no LLM calls; the agent uses it as a helper.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
-from typing import Optional
+from datetime import timedelta
 
 from shared.budget import (
+    BudgetSummary,
     default_allocation,
+    format_inr,
+    remaining_budget,
     shift_to_flights,
     shift_to_hotels,
-    is_within_budget,
-    remaining_budget,
-    format_inr,
-    BudgetSummary,
 )
 from shared.models import BudgetAllocation, TripRequest
 
@@ -138,7 +136,7 @@ class PlanningState:
     def warn(self, msg: str) -> None:
         self.warnings.append(msg)
 
-    def emit(self, event_type: str, agent: str, message: str, data: Optional[dict] = None) -> dict:
+    def emit(self, event_type: str, agent: str, message: str, data: dict | None = None) -> dict:
         event = {
             "event_type": event_type,
             "agent": agent,

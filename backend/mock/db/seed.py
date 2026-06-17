@@ -8,8 +8,8 @@ Run once before starting the mock API:
 
 from __future__ import annotations
 
-import sqlite3
 import random
+import sqlite3
 import uuid
 from datetime import date, timedelta
 from pathlib import Path

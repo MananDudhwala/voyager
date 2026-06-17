@@ -9,14 +9,14 @@ Run standalone:
 
 from __future__ import annotations
 
-import json
 import asyncio
+import json
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import TextContent, Tool
 
-from agents.itinerary.tools import get_pois, get_weather, get_travel_times, build_itinerary
+from agents.itinerary.tools import build_itinerary, get_pois, get_travel_times, get_weather
 
 app = Server("itinerary-agent")
 

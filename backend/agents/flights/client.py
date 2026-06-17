@@ -6,7 +6,6 @@ Swap this in by setting USE_DUFFEL=true in your .env.
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 import httpx
 

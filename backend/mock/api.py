@@ -13,7 +13,6 @@ import os
 import sqlite3
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional
 
 from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,7 +47,7 @@ def _load_scenario(name: str) -> dict:
     return data
 
 
-def _active_scenario(x_mock_scenario: Optional[str]) -> Optional[dict]:
+def _active_scenario(x_mock_scenario: str | None) -> dict | None:
     """Resolve scenario from header → env var → None (happy path)."""
     name = x_mock_scenario or os.getenv("MOCK_SCENARIO", "").strip()
     if not name:
@@ -80,7 +79,8 @@ async def lifespan(app: FastAPI):
     # Ensure DBs exist; seed if missing
     for db in (FLIGHTS_DB, HOTELS_DB, POIS_DB):
         if not db.exists():
-            import subprocess, sys
+            import subprocess
+            import sys
             subprocess.run(
                 [sys.executable, "-m", "mock.db.seed"],
                 cwd=Path(__file__).parent.parent,
@@ -140,8 +140,8 @@ def search_flights(
     destination: str = Query(...),
     date: str = Query(..., description="YYYY-MM-DD"),
     passengers: int = Query(default=1, ge=1),
-    max_price: Optional[float] = Query(default=None),
-    x_mock_scenario: Optional[str] = Header(default=None),
+    max_price: float | None = Query(default=None),
+    x_mock_scenario: str | None = Header(default=None),
 ):
     scenario = _active_scenario(x_mock_scenario)
 
@@ -187,7 +187,7 @@ def search_flights(
 
 
 @app.get("/flights/{flight_id}")
-def get_flight(flight_id: str, x_mock_scenario: Optional[str] = Header(default=None)):
+def get_flight(flight_id: str, x_mock_scenario: str | None = Header(default=None)):
     with _conn(FLIGHTS_DB) as conn:
         rows = _rows(conn, "SELECT * FROM flights WHERE flight_id = ?", (flight_id,))
     if not rows:
@@ -205,9 +205,9 @@ def search_hotels(
     check_in: str = Query(..., description="YYYY-MM-DD"),
     check_out: str = Query(..., description="YYYY-MM-DD"),
     guests: int = Query(default=1, ge=1),
-    max_price_per_night: Optional[float] = Query(default=None),
-    tier: Optional[str] = Query(default=None),
-    x_mock_scenario: Optional[str] = Header(default=None),
+    max_price_per_night: float | None = Query(default=None),
+    tier: str | None = Query(default=None),
+    x_mock_scenario: str | None = Header(default=None),
 ):
     from datetime import date as dt
 
@@ -267,7 +267,7 @@ def search_hotels(
 
 
 @app.get("/hotels/{hotel_id}")
-def get_hotel(hotel_id: str, x_mock_scenario: Optional[str] = Header(default=None)):
+def get_hotel(hotel_id: str, x_mock_scenario: str | None = Header(default=None)):
     with _conn(HOTELS_DB) as conn:
         rows = _rows(conn, "SELECT * FROM hotels WHERE hotel_id = ?", (hotel_id,))
     if not rows:
@@ -284,7 +284,7 @@ def get_hotel(hotel_id: str, x_mock_scenario: Optional[str] = Header(default=Non
 @app.get("/pois/search")
 def search_pois(
     city: str = Query(...),
-    categories: Optional[str] = Query(default=None, description="Comma-separated list"),
+    categories: str | None = Query(default=None, description="Comma-separated list"),
     limit: int = Query(default=10, ge=1, le=50),
     indoor_only: bool = Query(default=False),
 ):

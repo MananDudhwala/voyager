@@ -6,6 +6,7 @@ Swap these in during Phase 4 / Phase 6 when real API keys are available.
 from __future__ import annotations
 
 import os
+
 import httpx
 
 OPENWEATHERMAP_API_KEY = os.getenv("OPENWEATHERMAP_API_KEY", "")

@@ -13,8 +13,8 @@ from datetime import date
 
 os.environ["MOCK_SCENARIO"] = "budget_overrun"
 
-from shared.models import TripRequest
 from orchestrator.agent import VoyagerOrchestrator
+from shared.models import TripRequest
 
 
 async def main():

@@ -11,13 +11,14 @@ import asyncio
 import os
 from datetime import date
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 os.environ.pop("MOCK_SCENARIO", None)
 
-from shared.models import TripRequest
-from orchestrator.agent import VoyagerOrchestrator
+from orchestrator.agent import VoyagerOrchestrator  # noqa: E402
+from shared.models import TripRequest  # noqa: E402
 
 
 async def main():

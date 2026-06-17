@@ -9,14 +9,14 @@ Run standalone:
 
 from __future__ import annotations
 
-import json
 import asyncio
+import json
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import TextContent, Tool
 
-from agents.hotels.tools import search_hotels, get_hotel_details
+from agents.hotels.tools import get_hotel_details, search_hotels
 
 app = Server("hotel-agent")
 

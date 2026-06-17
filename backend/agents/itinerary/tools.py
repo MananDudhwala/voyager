@@ -10,8 +10,6 @@ from __future__ import annotations
 
 import os
 import random
-from datetime import date, timedelta
-from typing import Optional
 
 import httpx
 
@@ -31,7 +29,7 @@ random.seed(0)  # deterministic for demos
 
 def get_pois(
     city: str,
-    categories: Optional[list[str]] = None,
+    categories: list[str] | None = None,
     limit: int = 10,
     indoor_only: bool = False,
 ) -> list[dict]:

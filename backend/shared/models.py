@@ -5,30 +5,30 @@ Pydantic models shared across all Voyager agents and the orchestrator.
 from __future__ import annotations
 
 from datetime import date
-from enum import Enum
-from typing import Any, Optional
-from pydantic import BaseModel, Field
+from enum import StrEnum
+from typing import Any
 
+from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
 
 
-class TravelClass(str, Enum):
+class TravelClass(StrEnum):
     ECONOMY = "economy"
     PREMIUM_ECONOMY = "premium_economy"
     BUSINESS = "business"
 
 
-class HotelTier(str, Enum):
+class HotelTier(StrEnum):
     BUDGET = "budget"
     MIDSCALE = "midscale"
     UPSCALE = "upscale"
     LUXURY = "luxury"
 
 
-class WeatherCondition(str, Enum):
+class WeatherCondition(StrEnum):
     SUNNY = "sunny"
     PARTLY_CLOUDY = "partly_cloudy"
     CLOUDY = "cloudy"
@@ -37,7 +37,7 @@ class WeatherCondition(str, Enum):
     SNOWY = "snowy"
 
 
-class POICategory(str, Enum):
+class POICategory(StrEnum):
     MUSEUM = "museum"
     PARK = "park"
     RESTAURANT = "restaurant"
@@ -49,7 +49,7 @@ class POICategory(str, Enum):
     SPORT = "sport"
 
 
-class PlanStatus(str, Enum):
+class PlanStatus(StrEnum):
     PENDING = "pending"
     PLANNING = "planning"
     COMPLETED = "completed"
@@ -71,7 +71,7 @@ class TripRequest(BaseModel):
     return_date: date = Field(..., description="Return flight date")
     travelers: int = Field(default=1, ge=1, le=9)
     budget_inr: float = Field(..., gt=0, description="Total budget in INR (₹) for the entire trip")
-    preferences: Optional[dict] = Field(default=None, description="Optional traveler preferences")
+    preferences: dict | None = Field(default=None, description="Optional traveler preferences")
 
 
 # ---------------------------------------------------------------------------
@@ -143,8 +143,8 @@ class HotelOption(BaseModel):
     amenities: list[str] = Field(default_factory=list)
     cancellation_policy: str = "Free cancellation up to 48h before check-in"
     available: bool = True
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -163,7 +163,7 @@ class POI(BaseModel):
     estimated_duration_minutes: int = 60
     entry_fee_inr: float = 0.0
     is_indoor: bool = False
-    rating: Optional[float] = Field(default=None, ge=1.0, le=5.0)
+    rating: float | None = Field(default=None, ge=1.0, le=5.0)
 
 
 class WeatherForecast(BaseModel):
@@ -180,9 +180,9 @@ class WeatherForecast(BaseModel):
 
 class DayPlan(BaseModel):
     date: date
-    weather: Optional[WeatherForecast] = None
+    weather: WeatherForecast | None = None
     pois: list[POI] = Field(default_factory=list)
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class Itinerary(BaseModel):
@@ -201,14 +201,14 @@ class TripPlan(BaseModel):
     request: TripRequest
     budget: BudgetAllocation
     currency: str = "INR"
-    flight_outbound: Optional[FlightOption] = None
-    flight_return: Optional[FlightOption] = None
-    hotel: Optional[HotelOption] = None
-    itinerary: Optional[Any] = None
+    flight_outbound: FlightOption | None = None
+    flight_return: FlightOption | None = None
+    hotel: HotelOption | None = None
+    itinerary: Any | None = None
     status: PlanStatus = PlanStatus.PENDING
     total_cost: float = 0.0
     savings: float = 0.0  # budget - total_cost
-    summary: Optional[str] = None
+    summary: str | None = None
     warnings: list[str] = Field(default_factory=list)
 
 
@@ -223,4 +223,4 @@ class OrchestratorEvent(BaseModel):
     event_type: str  # "thinking" | "tool_call" | "tool_result" | "replan" | "done" | "error"
     agent: str  # "orchestrator" | "flight_agent" | "hotel_agent" | "itinerary_agent"
     message: str
-    data: Optional[dict] = None
+    data: dict | None = None

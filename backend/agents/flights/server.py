@@ -9,13 +9,13 @@ Run standalone:
 
 from __future__ import annotations
 
-import mcp.server.stdio
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
 import json
 
-from agents.flights.tools import search_flights, get_flight_details
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+from mcp.types import TextContent, Tool
+
+from agents.flights.tools import get_flight_details, search_flights
 
 app = Server("flight-agent")
 

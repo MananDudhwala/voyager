@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-from typing import Optional
 
 import httpx
 
@@ -65,7 +64,7 @@ def _serpapi_search_flights(
     destination: str,
     date: str,
     passengers: int = 1,
-    max_price: Optional[float] = None,
+    max_price: float | None = None,
 ) -> list[dict]:
     from serpapi import GoogleSearch
 
@@ -136,7 +135,7 @@ def _mock_search_flights(
     destination: str,
     date: str,
     passengers: int = 1,
-    max_price: Optional[float] = None,
+    max_price: float | None = None,
 ) -> list[dict]:
     params: dict = {
         "origin": origin, "destination": destination,
@@ -158,7 +157,7 @@ def search_flights(
     destination: str,
     date: str,
     passengers: int = 1,
-    max_price: Optional[float] = None,
+    max_price: float | None = None,
 ) -> list[dict]:
     """Search for available flights. Returns list of FlightOption dicts sorted by price."""
     if USE_REAL_API:
