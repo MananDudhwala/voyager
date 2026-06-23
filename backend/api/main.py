@@ -26,14 +26,44 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
+from shared.cache import cache_get, cache_set, close_redis, get_redis, redis_ping
 from shared.models import OrchestratorEvent, TripPlan, TripRequest
 
 # ---------------------------------------------------------------------------
-# In-memory store for running/completed plans
+# Plan store
 # ---------------------------------------------------------------------------
+# In-memory sentinel: None means "planning in progress"; absent key = not found.
+# Completed TripPlan objects are persisted in Redis (2-hour TTL) so they survive
+# restarts, with the in-memory dict as an automatic fallback when Redis is down.
 
-_plans: dict[str, TripPlan | None] = {}
+_plans_in_progress: set[str] = set()      # plan_ids currently being planned
 _event_queues: dict[str, asyncio.Queue] = defaultdict(asyncio.Queue)
+
+_PLAN_TTL = 7200  # 2 hours
+_PLAN_KEY_PREFIX = "voyager:plan"
+
+
+async def _save_plan(plan_id: str, plan: TripPlan) -> None:
+    """Persist a completed TripPlan to Redis (with in-memory fallback)."""
+    key = f"{_PLAN_KEY_PREFIX}:{plan_id}"
+    await cache_set(key, plan.model_dump(mode="json"), ttl=_PLAN_TTL)
+
+
+async def _load_plan(plan_id: str) -> TripPlan | None | str:
+    """
+    Load a plan by ID.
+    Returns:
+      - ``"in_progress"`` if planning is still running
+      - a ``TripPlan`` instance if complete
+      - ``None`` if not found
+    """
+    if plan_id in _plans_in_progress:
+        return "in_progress"
+    key = f"{_PLAN_KEY_PREFIX}:{plan_id}"
+    data = await cache_get(key)
+    if data is None:
+        return None
+    return TripPlan.model_validate(data)
 
 
 # ---------------------------------------------------------------------------
@@ -42,7 +72,9 @@ _event_queues: dict[str, asyncio.Queue] = defaultdict(asyncio.Queue)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await get_redis()  # warm the Redis pool; fast now that Redis is running
     yield
+    await close_redis()
 
 
 app = FastAPI(
@@ -65,8 +97,9 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 
 @app.get("/health")
-def health():
-    return {"status": "ok", "service": "voyager-api"}
+async def health():
+    redis_status = "ok" if await redis_ping() else "unavailable"
+    return {"status": "ok", "service": "voyager-api", "redis": redis_status}
 
 
 # ---------------------------------------------------------------------------
@@ -91,7 +124,7 @@ async def create_plan(body: PlanRequestBody):
     from datetime import date
 
     plan_id = str(uuid.uuid4())
-    _plans[plan_id] = None  # sentinel: planning in progress
+    _plans_in_progress.add(plan_id)  # mark as in-progress
 
     request = TripRequest(
         origin=body.origin,
@@ -104,14 +137,14 @@ async def create_plan(body: PlanRequestBody):
 
     async def run_planning():
         try:
-            from orchestrator.agent import VoyagerOrchestrator, _unwrap_exception
+            from orchestrator.agent import VoyagerOrchestrator
             orchestrator = VoyagerOrchestrator()
 
             async def push_event(event: OrchestratorEvent):
                 await _event_queues[plan_id].put(event)
 
             plan = await orchestrator.plan(request, event_callback=push_event)
-            _plans[plan_id] = plan
+            await _save_plan(plan_id, plan)
         except BaseException as e:
             import sys
             import traceback
@@ -130,6 +163,7 @@ async def create_plan(body: PlanRequestBody):
             )
             await _event_queues[plan_id].put(err_event)
         finally:
+            _plans_in_progress.discard(plan_id)  # planning done (success or error)
             # Signal stream end
             await _event_queues[plan_id].put(None)
 
@@ -141,12 +175,12 @@ async def create_plan(body: PlanRequestBody):
 @app.get("/plan/{plan_id}")
 async def get_plan(plan_id: str):
     """Retrieve the completed TripPlan."""
-    if plan_id not in _plans:
+    result = await _load_plan(plan_id)
+    if result is None:
         raise HTTPException(status_code=404, detail="Plan not found")
-    plan = _plans[plan_id]
-    if plan is None:
+    if result == "in_progress":
         return {"plan_id": plan_id, "status": "planning"}
-    return plan.model_dump()
+    return result.model_dump()
 
 
 # ---------------------------------------------------------------------------
@@ -159,8 +193,12 @@ async def stream_plan(plan_id: str):
     Server-Sent Events stream of OrchestratorEvents for a planning run.
     Emits JSON-encoded events; closes when planning completes.
     """
-    if plan_id not in _plans:
-        raise HTTPException(status_code=404, detail="Plan not found")
+    # Accept both in-progress (sentinel) and completed (Redis) plan IDs
+    if plan_id not in _event_queues and plan_id not in _plans_in_progress:
+        # check Redis in case this is a reconnect for a completed plan
+        result = await _load_plan(plan_id)
+        if result is None:
+            raise HTTPException(status_code=404, detail="Plan not found")
 
     queue = _event_queues[plan_id]
 
@@ -178,14 +216,15 @@ async def stream_plan(plan_id: str):
                 }),
             }
         # Send final plan snapshot
-        plan = _plans.get(plan_id)
-        if plan:
+        result = await _load_plan(plan_id)
+        if isinstance(result, TripPlan):
             yield {
                 "event": "plan_complete",
-                "data": plan.model_dump_json(),
+                "data": result.model_dump_json(),
             }
 
     return EventSourceResponse(event_generator())
+
 
 
 # ---------------------------------------------------------------------------

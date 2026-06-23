@@ -26,3 +26,17 @@ secrets:
   # but placeholders are kept here to define the structure.
   anthropicApiKey: ""
   serpapiKey: ""
+
+redis:
+  image:
+    tag: "7-alpine"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "200m"
+  # Set to "false" to disable caching without redeploying
+  cacheEnabled: "true"

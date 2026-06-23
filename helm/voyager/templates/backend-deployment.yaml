@@ -26,6 +26,10 @@ spec:
               value: "true"
             - name: MOCK_API_URL
               value: "http://127.0.0.1:8001" # Mock API not split in this basic chart, assuming mock is disabled or running locally
+            - name: REDIS_URL
+              value: "redis://{{ .Release.Name }}-redis:6379"
+            - name: REDIS_CACHE_ENABLED
+              value: "{{ .Values.redis.cacheEnabled }}"
           envFrom:
             - secretRef:
                 name: {{ .Release.Name }}-secrets

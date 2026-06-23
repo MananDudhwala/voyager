@@ -34,6 +34,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 import uuid
@@ -47,6 +48,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 from orchestrator.planner import PlanningState
+from shared.cache import cache_get, cache_set, make_cache_key
 from shared.models import (
     FlightOption,
     HotelOption,
@@ -58,6 +60,30 @@ from shared.models import (
     TripPlan,
     TripRequest,
 )
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Cache TTLs (seconds)
+# ---------------------------------------------------------------------------
+
+_TTL_FLIGHTS = 30 * 60        # 30 min — prices fluctuate
+_TTL_HOTELS = 30 * 60         # 30 min — availability changes
+_TTL_POIS = 24 * 60 * 60      # 24 h  — static attraction data
+_TTL_WEATHER = 60 * 60        # 1 h   — forecast changes slowly
+_TTL_TRAVEL_TIMES = 24 * 60 * 60  # 24 h  — stub / rarely changes
+
+# Map tool name → TTL; tools absent from this map are NOT cached.
+_TOOL_TTL: dict[str, int] = {
+    "search_flights": _TTL_FLIGHTS,
+    "get_flight_details": _TTL_FLIGHTS,
+    "search_hotels": _TTL_HOTELS,
+    "get_hotel_details": _TTL_HOTELS,
+    "get_pois": _TTL_POIS,
+    "get_weather": _TTL_WEATHER,
+    "get_travel_times": _TTL_TRAVEL_TIMES,
+    # build_itinerary is intentionally absent — it's cheap and composes cached data
+}
 
 # Load .env from the backend directory (two levels up from this file)
 load_dotenv(Path(__file__).parent.parent / ".env")
@@ -196,6 +222,68 @@ class VoyagerOrchestrator:
         if not ANTHROPIC_API_KEY:
             raise ValueError("ANTHROPIC_API_KEY is not set in environment")
         self._client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+
+    # ------------------------------------------------------------------
+    # Cache-aware tool dispatch
+    # ------------------------------------------------------------------
+
+    async def _cached_tool_call(
+        self,
+        tool: str,
+        cache_prefix: str,
+        ttl: int,
+        agent_module: str,
+        fallback: str = "[]",
+        **kwargs,
+    ) -> Any:
+        """
+        Call an MCP tool with Redis caching.
+
+        Checks the cache first; on a miss, calls the real MCP tool and stores
+        the result.  Falls through transparently if Redis is unavailable.
+
+        Args:
+            tool:         MCP tool name (e.g. ``"search_flights"``)
+            cache_prefix: Human-readable prefix for the cache key
+            ttl:          Cache TTL in seconds
+            agent_module: Python module path for the MCP server subprocess
+            fallback:     JSON string to return on empty MCP response
+            **kwargs:     Tool arguments forwarded to the MCP server
+        """
+        key = make_cache_key(cache_prefix, tool=tool, **kwargs)
+        cached = await cache_get(key)
+        if cached is not None:
+            logger.info("[cache] CACHE HIT  tool=%s key=%s", tool, key)
+            return cached
+
+        # Cache miss — call the real MCP tool
+        result = await self._call_mcp_tool(agent_module, tool, fallback, **kwargs)
+        await cache_set(key, result, ttl=ttl)
+        logger.info("[cache] CACHE MISS tool=%s key=%s (stored, ttl=%ds)", tool, key, ttl)
+        return result
+
+    async def _call_mcp_tool(
+        self,
+        agent_module: str,
+        tool: str,
+        fallback: str = "[]",
+        **kwargs,
+    ) -> Any:
+        """Low-level MCP tool invocation (no caching)."""
+        try:
+            server = _live_server_params(agent_module)
+            async with stdio_client(server) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    result = await session.call_tool(tool, arguments=kwargs)
+                    text = result.content[0].text if result.content else ""
+                    return _parse_tool_response(text, fallback=fallback)
+        except RuntimeError:
+            raise
+        except BaseException as exc:
+            raise RuntimeError(
+                f"{agent_module}.{tool} failed: {_unwrap_exception(exc)}"
+            ) from exc
 
     # ------------------------------------------------------------------
     # Public API
@@ -461,52 +549,40 @@ class VoyagerOrchestrator:
     # ------------------------------------------------------------------
 
     async def _call_flight_tool(self, tool: str, **kwargs) -> Any:
-        try:
-            server = _live_server_params(_FLIGHT_MODULE)
-            async with stdio_client(server) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    result = await session.call_tool(tool, arguments=kwargs)
-                    text = result.content[0].text if result.content else ""
-                    return _parse_tool_response(text, fallback="[]")
-        except RuntimeError:
-            raise
-        except BaseException as exc:
-            raise RuntimeError(
-                f"flight_agent.{tool} failed: {_unwrap_exception(exc)}"
-            ) from exc
+        return await self._cached_tool_call(
+            tool=tool,
+            cache_prefix="flight",
+            ttl=_TTL_FLIGHTS,
+            agent_module=_FLIGHT_MODULE,
+            fallback="[]",
+            **kwargs,
+        )
 
     async def _call_hotel_tool(self, tool: str, **kwargs) -> Any:
-        try:
-            server = _live_server_params(_HOTEL_MODULE)
-            async with stdio_client(server) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    result = await session.call_tool(tool, arguments=kwargs)
-                    text = result.content[0].text if result.content else ""
-                    return _parse_tool_response(text, fallback="[]")
-        except RuntimeError:
-            raise
-        except BaseException as exc:
-            raise RuntimeError(
-                f"hotel_agent.{tool} failed: {_unwrap_exception(exc)}"
-            ) from exc
+        return await self._cached_tool_call(
+            tool=tool,
+            cache_prefix="hotel",
+            ttl=_TTL_HOTELS,
+            agent_module=_HOTEL_MODULE,
+            fallback="[]",
+            **kwargs,
+        )
 
     async def _call_itinerary_tool(self, tool: str, **kwargs) -> Any:
-        try:
-            server = _live_server_params(_ITINERARY_MODULE)
-            async with stdio_client(server) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    result = await session.call_tool(tool, arguments=kwargs)
-                    text = result.content[0].text if result.content else ""
-                    return _parse_tool_response(text, fallback="{}")
-        except RuntimeError:
-            raise
-        except BaseException as exc:
-            raise RuntimeError(
-                f"itinerary_agent.{tool} failed: {_unwrap_exception(exc)}"
-            ) from exc
+        ttl = _TOOL_TTL.get(tool, 3600)
+        # build_itinerary is fast (pure computation) and depends on POIs + weather
+        # which are already cached, so we skip caching for build_itinerary itself.
+        if tool == "build_itinerary":
+            return await self._call_mcp_tool(_ITINERARY_MODULE, tool, fallback="{}", **kwargs)
+
+        return await self._cached_tool_call(
+            tool=tool,
+            cache_prefix="itinerary",
+            ttl=ttl,
+            agent_module=_ITINERARY_MODULE,
+            fallback="{}",
+            **kwargs,
+        )
 
     # ------------------------------------------------------------------
     # Data conversion helpers

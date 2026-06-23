@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-redis
+  labels:
+    app: voyager-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: voyager-redis
+  template:
+    metadata:
+      labels:
+        app: voyager-redis
+    spec:
+      containers:
+        - name: redis
+          image: "redis:{{ .Values.redis.image.tag }}"
+          imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+          ports:
+            - containerPort: 6379
+              protocol: TCP
+          resources:
+            requests:
+              memory: "{{ .Values.redis.resources.requests.memory }}"
+              cpu: "{{ .Values.redis.resources.requests.cpu }}"
+            limits:
+              memory: "{{ .Values.redis.resources.limits.memory }}"
+              cpu: "{{ .Values.redis.resources.limits.cpu }}"
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 15
+            periodSeconds: 20
